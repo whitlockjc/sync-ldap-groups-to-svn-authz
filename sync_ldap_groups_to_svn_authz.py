@@ -21,7 +21,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 ################################################################################
 
-import ConfigParser, datetime, getpass, os, re, sys, tempfile
+import ConfigParser, datetime, getpass, os, re, sys, tempfile, shutil
 from optparse import OptionParser
 
 try:
@@ -340,9 +340,9 @@ def print_group_model(groups, memberships):
       os.remove(authz_path + ".bak")
   
     if (os.path.exists(authz_path)):
-      os.rename(authz_path, authz_path + ".bak")
+      shutil.move(authz_path, authz_path + ".bak")
   
-    os.rename(tmp_authz_path, authz_path)
+    shutil.move(tmp_authz_path, authz_path)
   else:
     tmpfile = open(tmp_authz_path, 'r')
 
