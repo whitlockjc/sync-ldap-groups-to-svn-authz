@@ -146,6 +146,51 @@ def get_ldap_search_resultset(base_dn, group_query, ldapobject):
 
 # get_ldap_search_resultset()
 
+def get_members_from_group(group, ldapobject):
+  """Get members from a group and recursively in members that are groups
+  themselves"""
+  #print("Entering get_members_from_group with group: %s\n" % group['cn'][0] )
+  members = []
+  group_members = []
+  if group.has_key(group_member_attribute):
+    group_members = group[group_member_attribute]
+
+  # We need to check if the member is a group and handle specially
+  for member in group_members:
+    #print("Member: %s\n" % member)
+    try:
+      user = get_ldap_search_resultset(member, user_query, ldapobject)
+
+      if (len(user) == 1):
+        # The member is a user
+        attrs = user[0][0][1]
+
+        if (attrs.has_key(userid_attribute)):
+          members.append(str.lower(attrs[userid_attribute][0]))
+        else:
+          if verbose:
+            print("[WARNING]: %s does not have the %s attribute..." \
+                  % (user[0][0][0], userid_attribute))
+      else:
+        # Check to see if this member is really a group
+        mg = get_ldap_search_resultset(member, group_query, ldapobject)
+ 
+        if (len(mg) == 1):
+          # The member is a group so we have to append its members to ours
+          #print("Processing group: '%s' member of '%s'\n" % (mg[0][0][1]['cn'][0], group['cn'][0]))
+          for item in get_members_from_group(mg[0][0][1], ldapobject):
+            members.append(item)
+        else:
+          if verbose:
+            print("[WARNING]: %s is a member of %s but is neither a group " \
+                  "nor a user." % (member, group['cn'][0]))
+    except ldap.LDAPError, error_message:
+      if verbose:
+        print("[WARNING]: %s object was not found..." % member)
+  # uniq values
+  members = list(set(members))
+  return members
+
 def create_group_model(groups, ldapobject):
   """This function will take the list of groups created by search_for_groups()
 and will create a group membership model for each group."""
@@ -155,46 +200,7 @@ and will create a group membership model for each group."""
 
   if groups:
     for group in groups:
-      group_members = []
-      members = []
-    
-      if group[1].has_key(group_member_attribute):
-        group_members = group[1][group_member_attribute]
-    
-      # We need to check for if the member is a group and handle specially
-      for member in group_members:
-        try:
-          user = get_ldap_search_resultset(member, user_query, ldapobject)
-
-          if (len(user) == 1):
-            # The member is a user
-            attrs = user[0][0][1]
-        
-            if (attrs.has_key(userid_attribute)):
-              members.append(attrs[userid_attribute][0])
-            else:
-              if verbose:
-                print("[WARNING]: %s does not have the %s attribute..." \
-                      % (user[0][0][0], userid_attribute))
-          else:
-            # Check to see if this member is really a group
-            mg = get_ldap_search_resultset(member, group_query, ldapobject)
-          
-            if (len(mg) == 1):
-              # The member is a group
-              try:
-                members.append("GROUP:" + get_dict_key_from_value(groupmap,
-                                                                 mg[0][0][0]))
-              except TypeError:
-                print("[WARNING]: %s error..." % mg[0])
-            else:
-              if verbose:
-                print("[WARNING]: %s is a member of %s but is neither a group " \
-                      "or a user." % (member, group[1]['cn'][0]))
-        except ldap.LDAPError, error_message:
-          if verbose:
-            print("[WARNING]: %s object was not found..." % member)
-
+      members = get_members_from_group(group[1], ldapobject)
       memberships.append(members)
 
   return (groups, memberships)
