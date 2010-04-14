@@ -182,8 +182,11 @@ and will create a group membership model for each group."""
           
             if (len(mg) == 1):
               # The member is a group
-              members.append("GROUP:" + get_dict_key_from_value(groupmap,
-                                                                mg[0][0][0]))
+              try:
+                members.append("GROUP:" + get_dict_key_from_value(groupmap,
+                                                                 mg[0][0][0]))
+              except TypeError:
+                print("[WARNING]: %s error..." % mg[0])
             else:
               if verbose:
                 print("[WARNING]: %s is a member of %s but is neither a group " \
