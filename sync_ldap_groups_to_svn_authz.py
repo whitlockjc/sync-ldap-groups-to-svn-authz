@@ -166,6 +166,8 @@ def get_members_from_group(group, ldapobject):
         attrs = user[0][0][1]
 
         if (attrs.has_key(userid_attribute)):
+          if verbose:
+            sys.stderr.write(".")
           members.append(str.lower(attrs[userid_attribute][0]))
         else:
           if verbose:
@@ -178,6 +180,8 @@ def get_members_from_group(group, ldapobject):
         if (len(mg) == 1):
           # The member is a group so we have to append its members to ours
           #print("Processing group: '%s' member of '%s'\n" % (mg[0][0][1]['cn'][0], group['cn'][0]))
+          if verbose:
+            sys.stderr.write("+")
           for item in get_members_from_group(mg[0][0][1], ldapobject):
             members.append(item)
         else:
@@ -189,6 +193,8 @@ def get_members_from_group(group, ldapobject):
         print("[WARNING]: %s object was not found..." % member)
   # uniq values
   members = list(set(members))
+  if verbose:
+    sys.stderr.write("-")
   return members
 
 def create_group_model(groups, ldapobject):
@@ -200,8 +206,12 @@ and will create a group membership model for each group."""
 
   if groups:
     for group in groups:
+      if verbose:
+        sys.stderr.write("[INFO]: Processing group %s: " % group[1]['cn'][0])
       members = get_members_from_group(group[1], ldapobject)
       memberships.append(members)
+      if verbose:
+        sys.stderr.write("\n")
 
   return (groups, memberships)
 
