@@ -78,12 +78,16 @@ authz_path = None
 # This indicates whether or not to output logging information
 verbose = True
 
+# Add members of sub-groups recursively
+# does not mean OU recursive (which is by design)
+followgroups = False
+
 ################################################################################
 # Application Settings
 ################################################################################
 
 application_name = "LDAP Groups to Subversion Authz Groups Bridge"
-application_version = "1.0.1"
+application_version = "1.1.0"
 application_description = "The '%s' is a simple script that will query your " \
                           "directory server for group objects and create a " \
                           "representation of those groups in your Subversion " \
@@ -147,17 +151,17 @@ def get_ldap_search_resultset(base_dn, group_query, ldapobject):
 # get_ldap_search_resultset()
 
 def get_members_from_group(group, ldapobject):
-  """Get members from a group and recursively in members that are groups
+  """Get members from a group and recursively (optional) in members that are groups
   themselves"""
-  #print("Entering get_members_from_group with group: %s\n" % group['cn'][0] )
   members = []
   group_members = []
+  if verbose:
+    sys.stderr.write("+")
   if group.has_key(group_member_attribute):
     group_members = group[group_member_attribute]
 
   # We need to check if the member is a group and handle specially
   for member in group_members:
-    #print("Member: %s\n" % member)
     try:
       user = get_ldap_search_resultset(member, user_query, ldapobject)
 
@@ -178,12 +182,17 @@ def get_members_from_group(group, ldapobject):
         mg = get_ldap_search_resultset(member, group_query, ldapobject)
  
         if (len(mg) == 1):
-          # The member is a group so we have to append its members to ours
-          #print("Processing group: '%s' member of '%s'\n" % (mg[0][0][1]['cn'][0], group['cn'][0]))
-          if verbose:
-            sys.stderr.write("+")
-          for item in get_members_from_group(mg[0][0][1], ldapobject):
-            members.append(item)
+          # The member is a group
+          if followgroups:
+            # We walk in this group to add its members
+            for item in get_members_from_group(mg[0][0][1], ldapobject):
+              members.append(item)
+          else:
+            # We add the group as itself
+            try:
+              members.append("GROUP:" + mg[0][0][0])
+            except TypeError:
+              print("[WARNING]: TypeError with %s..." % mg[0])
         else:
           if verbose:
             print("[WARNING]: %s is a member of %s but is neither a group " \
@@ -269,7 +278,7 @@ def print_group_model(groups, memberships):
   header_middle =  now.strftime("%Y/%m/%d %H:%M:%S")
   header_end = ") ###"
   header = header_start + header_middle + header_end
-  footer = "### End generated content: " + application_name + " ###"
+  footer = "### End generated content: " + application_name + " ###\n"
   
   file = None
   tmp_fd, tmp_authz_path = tempfile.mkstemp()
@@ -344,7 +353,14 @@ def print_group_model(groups, memberships):
           tmpfile.write(", ")
       
         if (memberships[i][j].find("GROUP:") == 0):
-          tmpfile.write(memberships[i][j].replace("GROUP:","@"))
+          groupkey = get_dict_key_from_value(groupmap, memberships[i][j].replace("GROUP:",""))
+          if groupkey:
+            tmpfile.write("@" + groupkey)
+          else:
+            print("[WARNING]: subgroup not in search scope: %s. This means " %
+                   memberships[i][j].replace("GROUP:","") +
+                  "you won't have all members in the SVN group: %s." % 
+                   short_name)
         else:
           tmpfile.write(memberships[i][j])
   
@@ -409,6 +425,7 @@ def load_cli_properties(parser):
   global userid_attribute
   global authz_path
   global verbose
+  global followgroups
 
   (options, args) = parser.parse_args(args=None, values=None)
 
@@ -422,6 +439,7 @@ def load_cli_properties(parser):
   userid_attribute = options.userid_attribute
   authz_path = options.authz_path
   verbose = options.verbose
+  followgroups = options.followgroups
 
 # load_cli_properties()
 
@@ -457,10 +475,12 @@ def create_cli_parser():
                     help="The attribute of the user object that stores the " \
                          "userid to be used in the authz file.  " \
                          "[Default: %default]")
+  parser.add_option("-f", "--follow-groups", action="store_true", dest="followgroups",
+                    default=False, help="Follow sub-groups")
   parser.add_option("-z", "--authz-path", dest="authz_path",
                     help="The path to the authz file to update/create")
   parser.add_option("-q", "--quiet", action="store_false", dest="verbose",
-                    default="True", help="Suppress logging information")
+                    default=True, help="Suppress logging information")
 
   return parser
 
