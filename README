@@ -1,15 +1,21 @@
 ================================================================================
 =========        LDAP Groups to Subversion Authz Groups Bridge        ==========
 ================================================================================
-Author: Jeremy Whitlock <jwhitlock@collab.net>
+Author: Jeremy Whitlock <jwhitlock@collab.net>, Christophe Drevet <dr4ke@dr4ke.net>
 License: GPLv3
-Version: 1.0.2
+Version: 1.1.0
 Website: http://www.thoughtspark.org/
 Support: Feel free to reach out to me for bugs, suggestions, etc.
 ================================================================================
 
 Change Log
 --------------------------------------------------------------------------------
+2010-05-28 (version 1.1.0):
+- fix 'invalid cross-device link' error
+- handle TypeError when group not in search scope
+- print a warning when a sub group is not in search scope
+- add an option to follow sub groups to include all user members recursively (avoids previous warnings)
+- print group processing progress in verbose mode (like : +..++.-.--)
 2009-01-22 - There was a bug when you didn't specify the -z flag and when the query returned no groups. Version 1.0.1 has been produced as a result.
 2009-04-15 - There was a bug with nested groups.  Version 1.0.2 has been produced as a result.
 
@@ -105,6 +111,7 @@ the script, just to get our bearings:
                           userid to be used in the authz file.  [Default: cn]
     -z AUTHZ_PATH, --authz-path=AUTHZ_PATH
                           The path to the authz file to update/create
+    -f, --follow-groups   Follow sub-groups
     -q, --quiet           Suppress logging information
 
 Anything that has a "[Default:" string in its corresponding documentation is
@@ -115,7 +122,7 @@ example.
 
 Let's pretend that I have a directory structure like this:
 
-  *  Release Managers (CN=Release Managers,OU=Groups,DC=subversion,DC=thoughtspark,DC=org)
+  * Release Managers (CN=Release Managers,OU=Groups,DC=subversion,DC=thoughtspark,DC=org)
        * Release Manager One (CN=Release Manager One,OU=Users,DC=subversion,DC=thoughtspark,DC=org)
   * Developers (CN=Developers,OU=Groups,DC=subversion,DC=thoughtspark,DC=org)
        * Release Managers (CN=Release Managers,OU=Nested Groups,OU=Groups,DC=subversion,DC=thoughtspark,DC=org)
