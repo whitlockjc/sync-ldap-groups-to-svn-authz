@@ -102,7 +102,7 @@ def bind():
 
   ldapobject = ldap.initialize(url)
 
-  ldapobject.bind(bind_dn, bind_password)
+  ldapobject.bind_s(bind_dn, bind_password)
 
   if verbose:
     print("Successfully bound to %s..." % url)
