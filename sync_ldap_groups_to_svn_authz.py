@@ -348,21 +348,25 @@ def print_group_model(groups, memberships):
     
       tmpfile.write(short_name + " = ")
     
+      users = []
       for j in range(len(memberships[i])):
-        if (j != 0):
-          tmpfile.write(", ")
-      
+        user = None
         if (memberships[i][j].find("GROUP:") == 0):
           groupkey = get_dict_key_from_value(groupmap, memberships[i][j].replace("GROUP:",""))
           if groupkey:
-            tmpfile.write("@" + groupkey)
+            user = "@" + groupkey
           else:
             print("[WARNING]: subgroup not in search scope: %s. This means " %
                    memberships[i][j].replace("GROUP:","") +
                   "you won't have all members in the SVN group: %s." % 
                    short_name)
         else:
-          tmpfile.write(memberships[i][j])
+          user = memberships[i][j]
+
+        if user:
+          users.append(user)
+
+      tmpfile.write(", ".join(users))
   
   generate_legend(tmpfile, groups)
   
