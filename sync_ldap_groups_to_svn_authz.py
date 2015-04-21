@@ -55,6 +55,10 @@ base_dn = None
 # [Example: objectClass=group]
 group_query = "objectClass=group"
 
+# This is the known group DNs that will be used directly as a group
+# [Example: CN=Release Managers,OU=Groups,DC=subversion,DC=thoughtspark,DC=org]
+group_dns = []
+
 # This is the attribute of the group object that stores the group memberships.
 # [Example: member]
 group_member_attribute = "member"
@@ -133,14 +137,34 @@ def search_for_groups(ldapobject):
 
 # search_for_groups()
 
-def get_ldap_search_resultset(base_dn, group_query, ldapobject):
+def get_groups(ldapobject):
+  """This function will search the LDAP directory for the specificied group DNs."""
+
+  groups = []
+  for group_dn in group_dns:
+    result_set = get_ldap_search_resultset(group_dn, group_query, ldapobject, ldap.SCOPE_BASE)
+    if result_set:      
+      for i in range(len(result_set)):
+        for entry in result_set[i]:
+          groups.append(entry)
+    else:
+      if verbose:
+        print("Couldn't find a group with DN %s." % group_dn)
+
+  if verbose:
+    print("%d groups found." % len(groups))
+
+  return groups
+
+# get_groups()
+
+def get_ldap_search_resultset(base_dn, group_query, ldapobject, scope=ldap.SCOPE_SUBTREE):
   """This function will return a query result set."""
   result_set = []
   result_id = ldapobject.search(base_dn, ldap.SCOPE_SUBTREE, group_query)
 
   while 1:
     result_type, result_data = ldapobject.result(result_id, 0)
-
     if (result_type == ldap.RES_SEARCH_ENTRY):
         result_set.append(result_data)
     elif (result_type == ldap.RES_SEARCH_RESULT):
@@ -424,6 +448,7 @@ def load_cli_properties(parser):
   global url
   global base_dn
   global group_query
+  global group_dns
   global group_member_attribute
   global user_query
   global userid_attribute
@@ -438,6 +463,7 @@ def load_cli_properties(parser):
   url = options.url
   base_dn = options.base_dn
   group_query = options.group_query
+  group_dns = options.group_dns
   group_member_attribute = options.group_member_attribute
   user_query = options.user_query
   userid_attribute = options.userid_attribute
@@ -466,6 +492,10 @@ def create_cli_parser():
                     default="objectClass=group",
                     help="The query/filter used to identify group objects. " \
                          "[Default: %default]")
+  parser.add_option("-k", "--known-group-dn", action="append", dest="group_dns",
+                    help="The known group DN. Can be more than 1. When this option is used, the " \
+                         "--group-query will not be used for searching. Use this if " \
+                         "your LDAP server contains a lot of groups.")
   parser.add_option("-m", "--group-member-attribute",
                     dest="group_member_attribute", default="member",
                     help="The attribute of the group object that stores the " \
@@ -574,14 +604,17 @@ def main():
     print("Could not connect to %s. Error: %s " % (url, error_message))
     sys.exit(1)
 
-  try:
-    groups = search_for_groups(ldapobject)
+  try:    
+    if group_dns:
+      groups = get_groups(ldapobject)    
+    else:
+      groups = search_for_groups(ldapobject)
   except ldap.LDAPError, error_message:
     print("Error performing search: %s " % error_message)
     sys.exit(1)
 
   if groups and len(groups) == 0:
-    print("There were no groups found with the group_query you supplied.")
+    print("There were no groups found with the group_query / group_dns you supplied.")
     sys.exit(0)
 
   try:
