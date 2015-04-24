@@ -142,14 +142,15 @@ def get_groups(ldapobject):
 
   groups = []
   for group_dn in group_dns:
-    result_set = get_ldap_search_resultset(group_dn, group_query, ldapobject, ldap.SCOPE_BASE)
-    if result_set:      
+    try:
+      result_set = get_ldap_search_resultset(group_dn, group_query, ldapobject, ldap.SCOPE_BASE)
       for i in range(len(result_set)):
         for entry in result_set[i]:
           groups.append(entry)
-    else:
+    except ldap.NO_SUCH_OBJECT, e:
       if verbose:
         print("Couldn't find a group with DN %s." % group_dn)
+      raise e
 
   if verbose:
     print("%d groups found." % len(groups))
