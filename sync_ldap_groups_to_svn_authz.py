@@ -162,7 +162,7 @@ def get_groups(ldapobject):
 def get_ldap_search_resultset(base_dn, group_query, ldapobject, scope=ldap.SCOPE_SUBTREE):
   """This function will return a query result set."""
   result_set = []
-  result_id = ldapobject.search(base_dn, ldap.SCOPE_SUBTREE, group_query)
+  result_id = ldapobject.search(base_dn, scope, group_query)
 
   while 1:
     result_type, result_data = ldapobject.result(result_id, 0)
