@@ -108,8 +108,11 @@ def bind():
 
   ldapobject.bind_s(bind_dn, bind_password)
 
-  if verbose and (authz_path != None) and (authz_path != "None"): # print the following line only if the standard output is not the results file (i.e. the authz destination file path is provided by the -z or --authz-path parameter)
-    print("Successfully bound to %s..." % url)
+  if verbose
+    if is_outfile_specified:
+      print("Successfully bound to %s..." % url)
+    else:
+      sys.stderr.write("Successfully bound to %s..." % url)
 
   return ldapobject
 
@@ -122,16 +125,18 @@ def search_for_groups(ldapobject):
   result_set = get_ldap_search_resultset(base_dn, group_query, ldapobject)
 
   if (len(result_set) == 0):
-    if verbose or verbose_if_error:
-      sys.stderr.write("The group_query %s did not return any results." % group_query)
+    sys.stderr.write("The group_query %s did not return any results." % group_query)
     return
 
   for i in range(len(result_set)):
     for entry in result_set[i]:
       groups.append(entry)
 
-  if verbose and (authz_path != None) and (authz_path != "None"): # print the following line only if the standard output is not the results file (i.e. the authz destination file path is provided by the -z or --authz-path parameter)
-    print("%d groups found." % len(groups))
+  if verbose
+    if is_outfile_specified:
+      print("%d groups found." % len(groups))
+    else:
+      sys.stderr.write("%d groups found." % len(groups))
 
   return groups
 
@@ -148,12 +153,14 @@ def get_groups(ldapobject):
         for entry in result_set[i]:
           groups.append(entry)
     except ldap.NO_SUCH_OBJECT, e:
-      if verbose or verbose_if_error:
-        sys.stderr.write("Couldn't find a group with DN %s." % group_dn)
+      sys.stderr.write("Couldn't find a group with DN %s." % group_dn)
       raise e
 
-  if verbose and (authz_path != None) and (authz_path != "None"): # print the following line only if the standard output is not the results file (i.e. the authz destination file path is provided by the -z or --authz-path parameter)
-    print("%d groups found." % len(groups))
+  if verbose:
+    if is_outfile_specified:
+      print("%d groups found." % len(groups))
+    else:
+      sys.stderr.write(
 
   return groups
 
@@ -181,7 +188,10 @@ def get_members_from_group(group, ldapobject):
   members = []
   group_members = []
   if verbose:
-    sys.stderr.write("+")
+    if is_outfile_specified:
+      print("+")
+    else:
+      sys.stderr.write("+")
   if group.has_key(group_member_attribute):
     group_members = group[group_member_attribute]
 
@@ -196,11 +206,13 @@ def get_members_from_group(group, ldapobject):
 
         if (attrs.has_key(userid_attribute)):
           if verbose:
-            sys.stderr.write(".")
+            if is_outfile_specified:
+              print(".")
+            else:
+              sys.stderr.write(".")
           members.append(str.lower(attrs[userid_attribute][0]))
         else:
-          if verbose or verbose_if_error:
-            sys.stderr.write("[WARNING]: %s does not have the %s attribute..." \
+          sys.stderr.write("[WARNING]: %s does not have the %s attribute..." \
                   % (user[0][0][0], userid_attribute))
       else:
         # Check to see if this member is really a group
@@ -219,16 +231,17 @@ def get_members_from_group(group, ldapobject):
             except TypeError:
               sys.stderr.write("[WARNING]: TypeError with %s..." % mg[0])
         else:
-          if verbose or verbose_if_error:
-            sys.stderr.write("[WARNING]: %s is a member of %s but is neither a group " \
+          sys.stderr.write("[WARNING]: %s is a member of %s but is neither a group " \
                   "nor a user." % (member, group['cn'][0]))
     except ldap.LDAPError, error_message:
-      if verbose or verbose_if_error:
-        sys.stderr.write("[WARNING]: %s object was not found..." % member)
+      sys.stderr.write("[WARNING]: %s object was not found..." % member)
   # uniq values
   members = list(set(members))
   if verbose:
-    sys.stderr.write("-")
+    if is_outfile_specified:
+      print("-")
+    else:
+      sys.stderr.write("-")
   return members
 
 def create_group_model(groups, ldapobject):
@@ -241,11 +254,17 @@ and will create a group membership model for each group."""
   if groups:
     for group in groups:
       if verbose:
-        sys.stderr.write("[INFO]: Processing group %s: " % group[1]['cn'][0])
+        if is_outfile_specified:
+          print("[INFO]: Processing group %s: " % group[1]['cn'][0])
+        else:
+          sys.stderr.write("[INFO]: Processing group %s: " % group[1]['cn'][0])
       members = get_members_from_group(group[1], ldapobject)
       memberships.append(members)
       if verbose:
-        sys.stderr.write("\n")
+        if is_outfile_specified:
+          print("\n")
+        else:
+          sys.stderr.write("\n")
 
   return (groups, memberships)
 
@@ -455,8 +474,8 @@ def load_cli_properties(parser):
   global userid_attribute
   global authz_path
   global verbose
-  global verbose_if_error
   global followgroups
+  global is_outfile_specified
 
   (options, args) = parser.parse_args(args=None, values=None)
 
@@ -471,8 +490,9 @@ def load_cli_properties(parser):
   userid_attribute = options.userid_attribute
   authz_path = options.authz_path
   verbose = options.verbose
-  verbose_if_error = options.verbose_if_error
   followgroups = options.followgroups
+  
+  is_outfile_specified = (authz_path != None) and (authz_path != "None")
 
 # load_cli_properties()
 
@@ -518,10 +538,6 @@ def create_cli_parser():
                     help="The path to the authz file to update/create")
   parser.add_option("-q", "--quiet", action="store_false", dest="verbose",
                     default=True, help="Suppress logging information")
-  parser.add_option("-v", "--verbose-if-error", action="store_true",
-                    dest="verbose_if_error", default=False,
-                    help="Be verbose only for errors or warnings. " \
-                         "This option is active only with -q.")
 
   return parser
 
