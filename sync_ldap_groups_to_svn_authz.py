@@ -91,7 +91,7 @@ followgroups = False
 ################################################################################
 
 application_name = "LDAP Groups to Subversion Authz Groups Bridge"
-application_version = "1.2.0"
+application_version = "1.3.0"
 application_description = "The '%s' is a simple script that will query your " \
                           "directory server for group objects and create a " \
                           "representation of those groups in your Subversion " \
