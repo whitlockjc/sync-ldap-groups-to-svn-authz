@@ -68,17 +68,25 @@ except ImportError:
 # This is the fully-qualified path to the authz file to write to.
 #authz_path = "/opt/svn/svn_authz.txt"
 
+# Add members of sub-groups recursively
+# does not mean OU recursive (which is by design)
+#followgroups = False
+
 ################################################################################
 # Runtime Options
 # uncomment if you want to use them instead of the command line parameters
 ################################################################################
 
-# This indicates whether or not to output logging information
-#verbose = True
+# Keep the exact LDAP group names without alteration.
+# Useful if your group names contain non-word characters, i.e. not in [A-Za-z0-9_].
+#keep_names = False
 
-# Add members of sub-groups recursively
-# does not mean OU recursive (which is by design)
-#followgroups = False
+# Do not show logging information, except exit messages.
+#silent = False
+
+# This indicates whether or not to give more details during the execution.
+# Overrides -q .
+#verbose = True
 
 ################################################################################
 # Application Settings
@@ -307,7 +315,7 @@ def create_group_map(groups):
 
 def simplify_name(name):
   """Creates an authz simple group name."""
-  return re.sub("\W", "", name)
+  return name if (keep_names) else re.sub("\W", "", name)
 
 # simplify_name()
 
@@ -473,8 +481,9 @@ def load_cli_properties(parser):
   global group_member_attribute
   global user_query
   global userid_attribute
-  global authz_path
   global followgroups
+  global authz_path
+  global keep_names
   global silent
   global verbose
   
@@ -491,8 +500,9 @@ def load_cli_properties(parser):
   group_member_attribute = options.group_member_attribute
   user_query = options.user_query
   userid_attribute = options.userid_attribute
-  authz_path = options.authz_path
   followgroups = options.followgroups
+  authz_path = options.authz_path
+  keep_names = options.keep_names
   silent = options.silent
   verbose = options.verbose
   
@@ -556,6 +566,11 @@ def create_cli_parser():
                          "recursively. Does not mean OU recursive, which is by design.")
   parser.add_option("-z", "--authz-path", dest="authz_path",
                     help="The fully-qualified path to the authz file to be updated/created.")
+  parser.add_option("-n", "--keep-names", action="store_true",
+                    dest="keep_names", default=False,
+                    help="Keep the exact LDAP group names without alteration. " \
+                         "Useful if your group names contain non-word " \
+                         "characters, i.e. not in [A-Za-z0-9_].")
   parser.add_option("-q", "--quiet", action="store_true",
                     dest="silent", default=False,
                     help="Do not show logging information, except exit messages.")
