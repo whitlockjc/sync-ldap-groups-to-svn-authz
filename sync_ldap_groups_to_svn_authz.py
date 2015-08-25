@@ -80,11 +80,11 @@ authz_path = None
 ################################################################################
 
 # This indicates whether or not to output logging information
-verbose = True
+#verbose = True
 
 # Add members of sub-groups recursively
 # does not mean OU recursive (which is by design)
-followgroups = False
+#followgroups = False
 
 ################################################################################
 # Application Settings
@@ -108,7 +108,7 @@ def bind():
 
   ldapobject.bind_s(bind_dn, bind_password)
 
-  if verbose
+  if verbose:
     if is_outfile_specified:
       print("Successfully bound to %s..." % url)
     else:
@@ -125,14 +125,15 @@ def search_for_groups(ldapobject):
   result_set = get_ldap_search_resultset(base_dn, group_query, ldapobject)
 
   if (len(result_set) == 0):
-    sys.stderr.write("The group_query %s did not return any results." % group_query)
+    if not silent:
+      sys.stderr.write("The group_query %s did not return any results." % group_query)
     return
 
   for i in range(len(result_set)):
     for entry in result_set[i]:
       groups.append(entry)
 
-  if verbose
+  if verbose:
     if is_outfile_specified:
       print("%d groups found." % len(groups))
     else:
@@ -153,14 +154,15 @@ def get_groups(ldapobject):
         for entry in result_set[i]:
           groups.append(entry)
     except ldap.NO_SUCH_OBJECT, e:
-      sys.stderr.write("Couldn't find a group with DN %s." % group_dn)
+      if not silent:
+        sys.stderr.write("Couldn't find a group with DN %s." % group_dn)
       raise e
 
   if verbose:
     if is_outfile_specified:
       print("%d groups found." % len(groups))
     else:
-      sys.stderr.write(
+      sys.stderr.write("%d groups found." % len(groups))
 
   return groups
 
@@ -212,8 +214,9 @@ def get_members_from_group(group, ldapobject):
               sys.stderr.write(".")
           members.append(str.lower(attrs[userid_attribute][0]))
         else:
-          sys.stderr.write("[WARNING]: %s does not have the %s attribute..." \
-                  % (user[0][0][0], userid_attribute))
+          if not silent:
+            sys.stderr.write("[WARNING]: %s does not have the %s attribute..." \
+                              % (user[0][0][0], userid_attribute))
       else:
         # Check to see if this member is really a group
         mg = get_ldap_search_resultset(member, group_query, ldapobject)
@@ -229,12 +232,15 @@ def get_members_from_group(group, ldapobject):
             try:
               members.append("GROUP:" + mg[0][0][0])
             except TypeError:
-              sys.stderr.write("[WARNING]: TypeError with %s..." % mg[0])
+              if not silent:
+                sys.stderr.write("[WARNING]: TypeError with %s..." % mg[0])
         else:
-          sys.stderr.write("[WARNING]: %s is a member of %s but is neither a group " \
-                  "nor a user." % (member, group['cn'][0]))
+          if not silent:
+            sys.stderr.write("[WARNING]: %s is a member of %s but is neither a group " \
+                             "nor a user." % (member, group['cn'][0]))
     except ldap.LDAPError, error_message:
-      sys.stderr.write("[WARNING]: %s object was not found..." % member)
+      if not silent:
+        sys.stderr.write("[WARNING]: %s object was not found..." % member)
   # uniq values
   members = list(set(members))
   if verbose:
@@ -400,10 +406,11 @@ def print_group_model(groups, memberships):
           if groupkey:
             user = "@" + groupkey
           else:
-            sys.stderr.write("[WARNING]: subgroup not in search scope: %s. This means " %
-                              memberships[i][j].replace("GROUP:","") +
-                             "you won't have all members in the SVN group: %s." % 
-                              short_name)
+            if not silent:
+              sys.stderr.write("[WARNING]: subgroup not in search scope: %s. This means " %
+                                memberships[i][j].replace("GROUP:","") +
+                               "you won't have all members in the SVN group: %s." % 
+                                short_name)
         else:
           user = memberships[i][j]
 
@@ -473,8 +480,10 @@ def load_cli_properties(parser):
   global user_query
   global userid_attribute
   global authz_path
-  global verbose
   global followgroups
+  global silent
+  global verbose
+  
   global is_outfile_specified
 
   (options, args) = parser.parse_args(args=None, values=None)
@@ -489,8 +498,9 @@ def load_cli_properties(parser):
   user_query = options.user_query
   userid_attribute = options.userid_attribute
   authz_path = options.authz_path
-  verbose = options.verbose
   followgroups = options.followgroups
+  silent = options.silent
+  verbose = options.verbose
   
   is_outfile_specified = (authz_path != None) and (authz_path != "None")
 
@@ -536,8 +546,11 @@ def create_cli_parser():
                     default=False, help="Follow sub-groups")
   parser.add_option("-z", "--authz-path", dest="authz_path",
                     help="The path to the authz file to update/create")
-  parser.add_option("-q", "--quiet", action="store_false", dest="verbose",
-                    default=True, help="Suppress logging information")
+  parser.add_option("-q", "--quiet", action="store_true", dest="silent",
+                    default=False, help="Do not show logging information except exit messages.")
+  parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
+                    default=False, help="Give more details during the execution. " \
+                                        "Overrides -q")
 
   return parser
 

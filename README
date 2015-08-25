@@ -10,22 +10,24 @@ Support: Feel free to reach out to me for bugs, suggestions, etc.
 
 Change Log
 --------------------------------------------------------------------------------
-2015-08-24 (version 1.3.0):
-- Better management of outputs: all errors/warnings are directed to stderr, no information are provided if stdout is the authz destination file.
-- New parameter to be verbose only for errors/warnings.
-- Exit with error code 1 when no group is found.
+2015-08-25 (version 1.3.0):
+ - Better management of outputs: all errors/warnings are directed to stderr; info messages are given to stdout if an authz destination file is provided and are redirected to stderr otherwise.
+ - New parameter -v to distinguish warning/error and info verbosity (-v enables info logs; -q disables warning/error logs).
+ - Exit with error code 1 when no group is found.
 2015-05-12 (version 1.2.0):
-- Add new capability to retrieve known groups.
-- Fix empty user name when subgroup not in search scope.
-- Bind to LDAP server synchronously.
+ - Add new capability to retrieve known groups.
+ - Fix empty user name when subgroup not in search scope.
+ - Bind to LDAP server synchronously.
 2010-05-28 (version 1.1.0):
-- fix 'invalid cross-device link' error
-- handle TypeError when group not in search scope
-- print a warning when a sub group is not in search scope
-- add an option to follow sub groups to include all user members recursively (avoids previous warnings)
-- print group processing progress in verbose mode (like : +..++.-.--)
-2009-01-22 - There was a bug when you didn't specify the -z flag and when the query returned no groups. Version 1.0.1 has been produced as a result.
-2009-04-15 - There was a bug with nested groups.  Version 1.0.2 has been produced as a result.
+ - fix 'invalid cross-device link' error
+ - handle TypeError when group not in search scope
+ - print a warning when a sub group is not in search scope
+ - add an option to follow sub groups to include all user members recursively (avoids previous warnings)
+ - print group processing progress in verbose mode (like : +..++.-.--)
+2009-01-22:
+ There was a bug when you didn't specify the -z flag and when the query returned no groups. Version 1.0.1 has been produced as a result.
+2009-04-15:
+ There was a bug with nested groups.  Version 1.0.2 has been produced as a result.
 
 Background
 --------------------------------------------------------------------------------
@@ -121,9 +123,7 @@ the script, just to get our bearings:
                           The path to the authz file to update/create
     -f, --follow-groups   Follow sub-groups
     -q, --quiet           Suppress logging information
-    -v, --verbose-if-error
-                          Be verbose only for errors or warnings. This option is
-                          active only with -q.
+    -v, --verbose         Give more details during the execution. Overrides -q
 
 Anything that has a "[Default:" string in its corresponding documentation is
 "optional" and can usually be omitted when running against most directory
