@@ -27,56 +27,50 @@ from optparse import OptionParser
 try:
   import ldap
 except ImportError:
-  sys.stderr.write("Unable to locate the 'ldap' module.  Please install python-ldap.  " \
-        "(http://python-ldap.sourceforge.net)")
+  sys.stderr.write("Unable to locate the 'ldap' module. Please install python-ldap. " \
+                   "(http://python-ldap.sourceforge.net)\n")
   sys.exit(1)
 
 ################################################################################
 # Configuration Options
+# uncomment if you want to use them instead of the command line parameters
 ################################################################################
 
 # This is the distinguished name used to bind to the LDAP server.
-# [Example: CN=Jeremy Whitlock,OU=Users,DC=subversion,DC=thoughtspark,DC=org]
-bind_dn = None
+#bind_dn = "CN=Jeremy Whitlock,OU=Users,DC=subversion,DC=thoughtspark,DC=org"
 
 # This is the password for the user connecting to the LDAP server.
-# [Example: pa55w0rd]
-bind_password = None
+#bind_password = "pa55w0rd"
 
 # This is the fully-qualified url to the LDAP server.
-# [Example: ldap://localhost:389]
-url = None
+#url = "ldap://localhost:389"
 
 # This is the distinguished name to where the group search will start.
-# [Example: DC=subversion,DC=thoughtspark,DC=org]
-base_dn = None
+#base_dn = "DC=subversion,DC=thoughtspark,DC=org"
 
 # This is the query/filter used to identify group objects.
-# [Example: objectClass=group]
-group_query = "objectClass=group"
+#group_query = "objectClass=group"
 
 # This is the known group DNs that will be used directly as a group
-# [Example: CN=Release Managers,OU=Groups,DC=subversion,DC=thoughtspark,DC=org]
-group_dns = []
+# Default: group_dns = []
+#group_dns = "CN=Release Managers,OU=Groups,DC=subversion,DC=thoughtspark,DC=org"
 
 # This is the attribute of the group object that stores the group memberships.
-# [Example: member]
-group_member_attribute = "member"
+#group_member_attribute = "member"
 
 # This is the query/filter used to identify user objects.
-# [Example: objectClass=user]
-user_query = "objectClass=user"
+#user_query = "objectClass=user"
 
 # This is the attribute of the user object that stores the userid to be used in
-# the authz file.  [Example: cn]
-userid_attribute = "cn"
+# the authz file.
+#userid_attribute = "cn"
 
 # This is the fully-qualified path to the authz file to write to.
-# [Example: /opt/svn/svn_authz.txt]
-authz_path = None
+#authz_path = "/opt/svn/svn_authz.txt"
 
 ################################################################################
 # Runtime Options
+# uncomment if you want to use them instead of the command line parameters
 ################################################################################
 
 # This indicates whether or not to output logging information
@@ -110,9 +104,9 @@ def bind():
 
   if verbose:
     if is_outfile_specified:
-      print("Successfully bound to %s..." % url)
+      sys.stdout.write("Successfully bound to %s...\n" % url)
     else:
-      sys.stderr.write("Successfully bound to %s..." % url)
+      sys.stderr.write("Successfully bound to %s...\n" % url)
 
   return ldapobject
 
@@ -126,7 +120,7 @@ def search_for_groups(ldapobject):
 
   if (len(result_set) == 0):
     if not silent:
-      sys.stderr.write("The group_query %s did not return any results." % group_query)
+      sys.stderr.write("The group_query %s did not return any results.\n" % group_query)
     return
 
   for i in range(len(result_set)):
@@ -135,9 +129,9 @@ def search_for_groups(ldapobject):
 
   if verbose:
     if is_outfile_specified:
-      print("%d groups found." % len(groups))
+      sys.stdout.write("%d groups found.\n" % len(groups))
     else:
-      sys.stderr.write("%d groups found." % len(groups))
+      sys.stderr.write("%d groups found.\n" % len(groups))
 
   return groups
 
@@ -155,14 +149,14 @@ def get_groups(ldapobject):
           groups.append(entry)
     except ldap.NO_SUCH_OBJECT, e:
       if not silent:
-        sys.stderr.write("Couldn't find a group with DN %s." % group_dn)
+        sys.stderr.write("Couldn't find a group with DN %s.\n" % group_dn)
       raise e
 
   if verbose:
     if is_outfile_specified:
-      print("%d groups found." % len(groups))
+      sys.stdout.write("%d groups found.\n" % len(groups))
     else:
-      sys.stderr.write("%d groups found." % len(groups))
+      sys.stderr.write("%d groups found.\n" % len(groups))
 
   return groups
 
@@ -191,7 +185,7 @@ def get_members_from_group(group, ldapobject):
   group_members = []
   if verbose:
     if is_outfile_specified:
-      print("+")
+      sys.stdout.write("+")
     else:
       sys.stderr.write("+")
   if group.has_key(group_member_attribute):
@@ -209,13 +203,13 @@ def get_members_from_group(group, ldapobject):
         if (attrs.has_key(userid_attribute)):
           if verbose:
             if is_outfile_specified:
-              print(".")
+              sys.stdout.write(".")
             else:
               sys.stderr.write(".")
           members.append(str.lower(attrs[userid_attribute][0]))
         else:
           if not silent:
-            sys.stderr.write("[WARNING]: %s does not have the %s attribute..." \
+            sys.stderr.write("[WARNING]: %s does not have the %s attribute...\n" \
                               % (user[0][0][0], userid_attribute))
       else:
         # Check to see if this member is really a group
@@ -233,19 +227,19 @@ def get_members_from_group(group, ldapobject):
               members.append("GROUP:" + mg[0][0][0])
             except TypeError:
               if not silent:
-                sys.stderr.write("[WARNING]: TypeError with %s..." % mg[0])
+                sys.stderr.write("[WARNING]: TypeError with %s...\n" % mg[0])
         else:
           if not silent:
             sys.stderr.write("[WARNING]: %s is a member of %s but is neither a group " \
-                             "nor a user." % (member, group['cn'][0]))
+                             "nor a user.\n" % (member, group['cn'][0]))
     except ldap.LDAPError, error_message:
       if not silent:
-        sys.stderr.write("[WARNING]: %s object was not found..." % member)
+        sys.stderr.write("[WARNING]: %s object was not found...\n" % member)
   # uniq values
   members = list(set(members))
   if verbose:
     if is_outfile_specified:
-      print("-")
+      sys.stdout.write("-")
     else:
       sys.stderr.write("-")
   return members
@@ -261,14 +255,14 @@ and will create a group membership model for each group."""
     for group in groups:
       if verbose:
         if is_outfile_specified:
-          print("[INFO]: Processing group %s: " % group[1]['cn'][0])
+          sys.stdout.write("[INFO]: Processing group %s: " % group[1]['cn'][0])
         else:
           sys.stderr.write("[INFO]: Processing group %s: " % group[1]['cn'][0])
       members = get_members_from_group(group[1], ldapobject)
       memberships.append(members)
       if verbose:
         if is_outfile_specified:
-          print("\n")
+          sys.stdout.write("\n")
         else:
           sys.stderr.write("\n")
 
@@ -409,7 +403,7 @@ def print_group_model(groups, memberships):
             if not silent:
               sys.stderr.write("[WARNING]: subgroup not in search scope: %s. This means " %
                                 memberships[i][j].replace("GROUP:","") +
-                               "you won't have all members in the SVN group: %s." % 
+                               "you won't have all members in the SVN group: %s.\n" % 
                                 short_name)
         else:
           user = memberships[i][j]
@@ -437,7 +431,7 @@ def print_group_model(groups, memberships):
     tmpfile = open(tmp_authz_path, 'r')
 
     for line in tmpfile.readlines():
-      print(line)
+      sys.stdout.write(line)
 
     tmpfile.close()
 
@@ -512,45 +506,62 @@ def create_cli_parser():
   parser = OptionParser(usage=usage, description=application_description)
 
   parser.add_option("-d", "--bind-dn", dest="bind_dn",
-                    help="The DN of the user to bind to the directory with")
+                    help="The Distinguished Name (DN) used to bind to the " \
+                         "directory with. " \
+                         "[Example: CN=Jeremy Whitlock,OU=Users," \
+                         "DC=subversion,DC=thoughtspark,DC=org]")
   parser.add_option("-p", "--bind-password", dest="bind_password",
-                    help="The password for the user specified with the " \
-                         "--bind-dn")
+                    help="The password for the user specified with the --bind-dn . " \
+                         "[Example: pa55w0rd]")
   parser.add_option("-l", "--url", dest="url",
-                    help="The url (scheme://hostname:port) for the directory " \
-                         "server")
+                    help="The fully-qualified URL (scheme://hostname:port) to " \
+                         "the directory server. " \
+                         "[Example: ldap://localhost:389]")
   parser.add_option("-b", "--base-dn", dest="base_dn",
-                    help="The DN at which to perform the recursive search")
+                    help="The Distinguished Name (DN) at which the recursive " \
+                         "group search will start. " \
+                         "[Example: DC=subversion,DC=thoughtspark,DC=org]")
   parser.add_option("-g", "--group-query", dest="group_query",
                     default="objectClass=group",
                     help="The query/filter used to identify group objects. " \
+                         "[Example: objectClass=group] " \
                          "[Default: %default]")
   parser.add_option("-k", "--known-group-dn", action="append", dest="group_dns",
-                    help="The known group DN. Can be more than 1. When this option is used, the " \
-                         "--group-query will not be used for searching. Use this if " \
-                         "your LDAP server contains a lot of groups.")
+                    help="The known group Distinguished Name(s) that will be used " \
+                         "directly as a group. Can be more than 1. When this option is " \
+                         "used, the --group-query will not be used for searching. " \
+                         "Useful if your LDAP server contains a lot of groups. " \
+                         "[Example: CN=Release Managers,OU=Groups," \
+                         "DC=subversion,DC=thoughtspark,DC=org]")
   parser.add_option("-m", "--group-member-attribute",
                     dest="group_member_attribute", default="member",
                     help="The attribute of the group object that stores the " \
-                         "group memberships.  [Default: %default]")
+                         "group memberships. " \
+                         "[Example: member] " \
+                         "[Default: %default]")
   parser.add_option("-u", "--user-query", dest="user_query",
                     default="objectClass=user",
                     help="The query/filter used to identify user objects. " \
+                         "[Example: objectClass=user] " \
                          "[Default: %default]")
   parser.add_option("-i", "--userid_attribute", dest="userid_attribute",
                     default="cn",
                     help="The attribute of the user object that stores the " \
-                         "userid to be used in the authz file.  " \
+                         "userid to be used in the authz file. " \
+                         "[Example: cn] " \
                          "[Default: %default]")
-  parser.add_option("-f", "--follow-groups", action="store_true", dest="followgroups",
-                    default=False, help="Follow sub-groups")
+  parser.add_option("-f", "--follow-groups", action="store_true",
+                    dest="followgroups", default=False,
+                    help="Follow sub-groups, i.e. add members of sub-groups " \
+                         "recursively. Does not mean OU recursive, which is by design.")
   parser.add_option("-z", "--authz-path", dest="authz_path",
-                    help="The path to the authz file to update/create")
-  parser.add_option("-q", "--quiet", action="store_true", dest="silent",
-                    default=False, help="Do not show logging information except exit messages.")
-  parser.add_option("-v", "--verbose", action="store_true", dest="verbose",
-                    default=False, help="Give more details during the execution. " \
-                                        "Overrides -q")
+                    help="The fully-qualified path to the authz file to be updated/created.")
+  parser.add_option("-q", "--quiet", action="store_true",
+                    dest="silent", default=False,
+                    help="Do not show logging information, except exit messages.")
+  parser.add_option("-v", "--verbose", action="store_true",
+                    dest="verbose", default=False,
+                    help="Give more details during the execution. Overrides -q .")
 
   return parser
 
@@ -559,19 +570,23 @@ def create_cli_parser():
 def are_properties_set():
   """This function will perform a simple test to make sure none of the
 properties are 'None'."""
-  if (bind_dn == None):
-    return False
-  if (url == None):
-    return False
-  if (base_dn == None):
-    return False
-  if (group_query == None):
-    return False
-  if (group_member_attribute == None):
-    return False
-  if (user_query == None):
-    return False
-  if (userid_attribute == None):
+  try:
+    if (bind_dn == None):
+      return False
+    if (url == None):
+      return False
+    if (base_dn == None):
+      return False
+    if (group_query == None):
+      return False
+    if (group_member_attribute == None):
+      return False
+    if (user_query == None):
+      return False
+    if (userid_attribute == None):
+      return False
+  except:
+    # one of the variables may not exist (i.e. not defined at the start of the script)
     return False
   
   # bind_password is not checked since if not passed, the user will be prompted
@@ -606,23 +621,27 @@ def get_unset_properties():
 
 def main():
   """This function is the entry point for this script."""
+  
+  parser = None
 
-  # Create the OptionParser
-  parser = create_cli_parser()
-
-  # Attempt to load properties from the command line if necessary
+  # If all necessary options are not properly set in the current script file
+  # (see at the top of the script)
   if not are_properties_set():
+    # Attempt to load them from the command line parameters
+    parser = create_cli_parser()
     load_cli_properties(parser)
 
+  # if some properties are not set at this point, there is an error
   if not are_properties_set():
-    sys.stderr.write("There is not enough information to proceed.")
+    sys.stderr.write("There is not enough information to proceed.\n")
     
     for prop in get_unset_properties():
-      sys.stderr.write("'%s' was not passed" % prop)
+      sys.stderr.write("'%s' was not passed\n" % prop)
 
-    sys.stderr.write("")
-    parser.print_help()
-    parser.exit()
+    sys.stderr.write("\n")
+    if parser != None:
+      parser.print_help()
+      parser.exit()
 
   # Allow user to type in password if missing
   global bind_password
@@ -637,7 +656,7 @@ def main():
   try:
     ldapobject = bind()
   except ldap.LDAPError, error_message:
-    sys.stderr.write("Could not connect to %s. Error: %s " % (url, error_message))
+    sys.stderr.write("Could not connect to %s. Error: %s \n" % (url, error_message))
     sys.exit(1)
 
   try:    
@@ -646,17 +665,18 @@ def main():
     else:
       groups = search_for_groups(ldapobject)
   except ldap.LDAPError, error_message:
-    sys.stderr.write("Error performing search: %s " % error_message)
+    sys.stderr.write("Error performing search: %s \n" % error_message)
     sys.exit(1)
 
   if groups and len(groups) == 0:
-    sys.stderr.write("There were no groups found with the group_query / group_dns you supplied.")
+    sys.stderr.write("There were no groups found with the group_query / group_dns " \
+                     "you supplied.\n")
     sys.exit(1)
 
   try:
     memberships = create_group_model(groups, ldapobject)[1]
   except ldap.LDAPError, error_message:
-    sys.stderr.write("Error creating group model: %s" % error_message)
+    sys.stderr.write("Error creating group model: %s\n" % error_message)
     sys.exit(1)
 
   print_group_model(groups, memberships)

@@ -14,6 +14,7 @@ Change Log
  - Better management of outputs: all errors/warnings are directed to stderr; info messages are given to stdout if an authz destination file is provided and are redirected to stderr otherwise.
  - New parameter -v to distinguish warning/error and info verbosity (-v enables info logs; -q disables warning/error logs).
  - Exit with error code 1 when no group is found.
+ - Hard-coded parameters at the top of the script are now optional.
 2015-05-12 (version 1.2.0):
  - Add new capability to retrieve known groups.
  - Fix empty user name when subgroup not in search scope.
@@ -100,30 +101,48 @@ the script, just to get our bearings:
   Options:
     -h, --help            show this help message and exit
     -d BIND_DN, --bind-dn=BIND_DN
-                          The DN of the user to bind to the directory with
+                          The Distinguished Name (DN) used to bind to the
+                          directory with. [Example: CN=Jeremy Whitlock,OU=Users,
+                          DC=subversion,DC=thoughtspark,DC=org]
     -p BIND_PASSWORD, --bind-password=BIND_PASSWORD
                           The password for the user specified with the --bind-dn
-    -l URL, --url=URL     The url (scheme://hostname:port) for the directory
-                          server
+                          . [Example: pa55w0rd]
+    -l URL, --url=URL     The fully-qualified URL (scheme://hostname:port) to
+                          the directory server. [Example: ldap://localhost:389]
     -b BASE_DN, --base-dn=BASE_DN
-                          The DN at which to perform the recursive search
+                          The Distinguished Name (DN) at which the recursive
+                          group search will start. [Example:
+                          DC=subversion,DC=thoughtspark,DC=org]
     -g GROUP_QUERY, --group-query=GROUP_QUERY
                           The query/filter used to identify group objects.
-                          [Default: objectClass=group]
+                          [Example: objectClass=group] [Default:
+                          objectClass=group]
+    -k GROUP_DNS, --known-group-dn=GROUP_DNS
+                          The known group Distinguished Name(s) that will be
+                          used directly as a group. Can be more than 1. When
+                          this option is used, the --group-query will not be
+                          used for searching. Useful if your LDAP server
+                          contains a lot of groups. [Example: CN=Release Manager
+                          s,OU=Groups,DC=subversion,DC=thoughtspark,DC=org]
     -m GROUP_MEMBER_ATTRIBUTE, --group-member-attribute=GROUP_MEMBER_ATTRIBUTE
                           The attribute of the group object that stores the
-                          group memberships.  [Default: member]
+                          group memberships. [Example: member] [Default: member]
     -u USER_QUERY, --user-query=USER_QUERY
                           The query/filter used to identify user objects.
-                          [Default: objectClass=user]
+                          [Example: objectClass=user] [Default:
+                          objectClass=user]
     -i USERID_ATTRIBUTE, --userid_attribute=USERID_ATTRIBUTE
                           The attribute of the user object that stores the
-                          userid to be used in the authz file.  [Default: cn]
+                          userid to be used in the authz file. [Example: cn]
+                          [Default: cn]
+    -f, --follow-groups   Follow sub-groups, i.e. add members of sub-groups
+                          recursively. Does not mean OU recursive, which is by
+                          design.
     -z AUTHZ_PATH, --authz-path=AUTHZ_PATH
-                          The path to the authz file to update/create
-    -f, --follow-groups   Follow sub-groups
-    -q, --quiet           Suppress logging information
-    -v, --verbose         Give more details during the execution. Overrides -q
+                          The fully-qualified path to the authz file to be
+                          updated/created.
+    -q, --quiet           Do not show logging information, except exit messages.
+    -v, --verbose         Give more details during the execution. Overrides -q .
 
 Anything that has a "[Default:" string in its corresponding documentation is
 "optional" and can usually be omitted when running against most directory
