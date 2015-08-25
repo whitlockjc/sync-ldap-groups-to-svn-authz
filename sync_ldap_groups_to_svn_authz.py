@@ -331,6 +331,7 @@ def print_group_model(groups, memberships):
   header_end = ") ###"
   header = header_start + header_middle + header_end
   footer = "### End generated content: " + application_name + " ###\n"
+  text_after_content = ""
   
   file = None
   tmp_fd, tmp_authz_path = tempfile.mkstemp()
@@ -342,16 +343,22 @@ def print_group_model(groups, memberships):
     
       # Remove previous generated content
       inside_content = False
+      before_content = True
       
-      for line in file.readlines():
-        if (inside_content):
-          if (line.find(footer) > -1):
+      for line in file.readlines(): # read from the existing file
+        if (inside_content): # currently between header and footer
+          if (line.find(footer) > -1): # footer found
             inside_content = False
         else:
-          if (line.find(header_start) > -1):
+          if (line.find(header_start) > -1): # header found
             inside_content = True
+            before_content = False
           else:
-            tmpfile.write(line)
+            # write the original content to the new file only if it was not auto-generated
+            if before_content:
+              tmpfile.write(line) # found before the header: write directly
+            else:
+              text_after_content += line # found after the header, write to a temporary variable
       
       file.close()
       tmpfile.close()
@@ -362,24 +369,19 @@ def print_group_model(groups, memberships):
     
     if (not cp.has_section("groups")):
       tmpfile = open(tmp_authz_path, 'a')
-      
       tmpfile.write("[groups]\n")
-      
       tmpfile.close()
+    # else: do not write the "[group]" tag because it already exists
   else:
     tmpfile = open(tmp_authz_path, 'a')
-      
     tmpfile.write("[groups]\n")
-    
     tmpfile.close()
   
   needs_new_line = False
   
   tmpfile = open(tmp_authz_path, 'r')
-  
-  if (tmpfile.readlines()[-1].strip() != ''):
-    needs_new_line = True
-  
+  if (tmpfile.readlines()[-1].strip() != ''): # if the last line is not empty
+    needs_new_line = True # ask to insert a new empty line at the end
   tmpfile.close()
   
   tmpfile = open(tmp_authz_path, 'a')
@@ -424,6 +426,8 @@ def print_group_model(groups, memberships):
   generate_legend(tmpfile, groups)
   
   tmpfile.write("\n" + footer)
+  
+  tmpfile.write(text_after_content) # write back original content to file
   
   tmpfile.close()
 
