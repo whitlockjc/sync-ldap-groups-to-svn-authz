@@ -1,7 +1,10 @@
 ================================================================================
 =========        LDAP Groups to Subversion Authz Groups Bridge        ==========
 ================================================================================
-Author: Jeremy Whitlock <jwhitlock@collab.net>, Christophe Drevet <dr4ke@dr4ke.net>
+Author: Jeremy Whitlock <jwhitlock@collab.net>,
+        Christophe Drevet <dr4ke@dr4ke.net>,
+        Wisen Tanasa
+        Justin MASSIOT
 License: GPLv3
 Version: 1.3.0
 Website: http://www.thoughtspark.org/
@@ -15,6 +18,10 @@ Change Log
  - New parameter -v to distinguish warning/error and info verbosity (-v enables info logs; -q disables warning/error logs).
  - Exit with error code 1 when no group is found.
  - Hard-coded parameters at the top of the script are now optional.
+ - New parameter -n to keep exact LDAP group names. For example, "my-group" is
+   no longer replaced by "mygroup".
+ - All text found "around" the auto-generated groups are now restored at the right place.
+   You can define supergroups from LDAP groups safely.
 2015-05-12 (version 1.2.0):
  - Add new capability to retrieve known groups.
  - Fix empty user name when subgroup not in search scope.
@@ -47,15 +54,17 @@ shortcomings of such a configuration.
 The Problem
 --------------------------------------------------------------------------------
 Subversion's authz architecture requires your group definitions to be defined
-within the authz file.  Subversion's authz architecture is also unaware of
+within the authz file (not true any more as of Subversion 1.8: see the
+"groups-db" option).  Subversion's authz architecture is also unaware of
 third-party data stores for users/groups.  This means that if you do not define
 your group within the authz file, Subversion will not know whether a user is a
 member of said group and will ultimately tell you that you do not have access
 to a resource.  That being said, the current problem is that with this server
 configuration, either you cannot harness group models defined in your directory
-server or you have to manually synchronize your group models from your
-directory server to Subversion's authz file.  There are many downsides to doing
-things this way:
+server or you have to manually synchronize your group models from your directory
+server to Subversion's authz file.
+There are many downsides to doing things
+this way:
 
   * It's time consuming
   * It's easy to forget that changes have been made and need to be mirrored
@@ -141,6 +150,9 @@ the script, just to get our bearings:
     -z AUTHZ_PATH, --authz-path=AUTHZ_PATH
                           The fully-qualified path to the authz file to be
                           updated/created.
+    -n, --keep-names      Keep the exact LDAP group names without alteration.
+                          Useful if your group names contain non-word
+                          characters, i.e. not in [A-Za-z0-9_].
     -q, --quiet           Do not show logging information, except exit messages.
     -v, --verbose         Give more details during the execution. Overrides -q .
 
@@ -168,14 +180,14 @@ Let's pretend that I have a directory structure like this:
 This will help showcase how the "LDAP Groups to Subversion Authz Groups
 Bridge" handles this situation.)  I now want to run the script:
 
-  python sync_ldap_groups_to_svn_authz.py \
+  python sync_ldap_groups_to_svn_authz.py -v \
     -d "CN=Jeremy Whitlock,OU=Users,DC=subversion,DC=thoughtspark,DC=org" \
     -l "ldap://localhost:389" \
     -b "DC=subversion,DC=thoughtspark,DC=org" > svn_auth.txt
 
 You'll notice I didn't specify a password.  In this event, the script will
 prompt you, securely, for a password.  After the script runs, as long as you
-didn't run with the "-q" flag, you should see output like this:
+run with the "-v" flag, you should see output like this:
 
   Successfully bound to ldap://localhost:389
   4 groups found.
@@ -202,8 +214,7 @@ the message along side the warning to see why.)  So what does the file look like
 
   ### End generated content: LDAP Groups to Subversion Authz Groups Bridge ###
 
-Here is a list of features, or things to realize, based on the output of this
-script:
+Here is a list of features based on the output of this script:
 
   * The "[groups]" section is created but only if necessary
   * All generated content is within known "markers" for loss-less regeneration
