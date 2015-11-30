@@ -13,20 +13,24 @@ This script was written almost 10 years ago and has been barely maintained.  At 
    no longer replaced by "mygroup".
  - All text found "around" the auto-generated groups are now restored at the right place.
    You can define supergroups from LDAP groups safely.
+
 2015-05-12 (version 1.2.0):
  - Add new capability to retrieve known groups.
  - Fix empty user name when subgroup not in search scope.
  - Bind to LDAP server synchronously.
+
 2010-05-28 (version 1.1.0):
  - fix 'invalid cross-device link' error
  - handle TypeError when group not in search scope
  - print a warning when a sub group is not in search scope
  - add an option to follow sub groups to include all user members recursively (avoids previous warnings)
  - print group processing progress in verbose mode (like : +..++.-.--)
-2009-01-22:
- There was a bug when you didn't specify the -z flag and when the query returned no groups. Version 1.0.1 has been produced as a result.
-2009-04-15:
- There was a bug with nested groups.  Version 1.0.2 has been produced as a result.
+
+2009-04-15 (version 1.0.2):
+ There was a bug with nested groups.
+
+2009-01-22 (version 1.0.1):
+ There was a bug when you didn't specify the -z flag and when the query returned no groups.
 
 # Background
 
