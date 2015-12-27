@@ -208,6 +208,15 @@ python sync_ldap_groups_to_svn_authz.py \
 
 The new things you see in this call that differ from the first call is that we are now looking for the `sAMAccountName` attribute for the username instead of the `cn` attribute.  You also see that we can pass the password as a command line argument.
 
+# Filtering users
+
+By default the query will return all members of the requested LDAP groups, this will include users whose accounts are disabled in the directory which is undesirable for security reasons. To exclude disabled users from the results from Active Directory, use the following user query filter:
+
+```
+  --user-query="(&(objectClass=User)(!(userAccountControl:1.2.840.113556.1.4.803:=2)))]"
+```
+There are other such filters for Active Directory available at: (http://www.ldapexplorer.com/en/manual/109050000-famous-filters.htm)
+
 # Summary
 
 So now that we've seen how the script is ran, what is necessary to get it running and even a complete example, it's now up to you to get this thing into your Subversion infrastructure.  Immediate ideas are to automate this with your operating system's task scheduler and/or create a web interface to kick this script off on an as-needed basis. Regardless of how you use it, the *"LDAP Groups to Subversion Authz Groups Bridge"* should make the error-prone, tedious and easy-to-forget process of manually synchronizing your LDAP group models to Subversion's authz file much, much easier.  It might even get so easy you forget that Subversion doesn't natively support LDAP groups.

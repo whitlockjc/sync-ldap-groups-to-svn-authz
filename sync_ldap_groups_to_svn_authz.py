@@ -251,7 +251,7 @@ def get_members_from_group(group, ldapobject):
       if not silent:
         sys.stderr.write("[WARNING]: %s object was not found...\n" % member)
   # uniq values
-  members = list(set(members))
+  members = sorted(list(set(members)))
   if verbose:
     if is_outfile_specified:
       sys.stdout.write("-")
