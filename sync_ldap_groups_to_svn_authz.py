@@ -341,10 +341,12 @@ def print_group_model(groups, memberships):
   text_after_content = ""
   
   file = None
+  filemode = None
   tmp_fd, tmp_authz_path = tempfile.mkstemp()
   
   if ((authz_path != None) and (authz_path != "None")):
     if (os.path.exists(authz_path)):
+      filemode = os.stat(authz_path)
       file = open(authz_path, 'r')
       tmpfile = open(tmp_authz_path, 'w')
     
@@ -446,6 +448,7 @@ def print_group_model(groups, memberships):
       shutil.move(authz_path, authz_path + ".bak")
   
     shutil.move(tmp_authz_path, authz_path)
+    os.chmod(authz_path, filemode.st_mode)
   else:
     tmpfile = open(tmp_authz_path, 'r')
 
