@@ -52,6 +52,9 @@ except ImportError:
 # This is the fully-qualified url to the LDAP server.
 #url = "ldap://localhost:389"
 
+# This determines whether to use starttls.
+#starttls = False
+
 # This is the distinguished name to where the group search will start.
 #base_dn = "DC=subversion,DC=thoughtspark,DC=org"
 
@@ -115,6 +118,9 @@ def bind():
 
   ldapobject = ldap.initialize(url)
 
+  if starttls:
+    ldapobject.start_tls_s()
+
   ldapobject.bind_s(bind_dn, bind_password)
 
   if verbose:
@@ -126,7 +132,7 @@ def bind():
   return ldapobject
 
 # bind()
-  
+
 def search_for_groups(ldapobject):
   """This function will search the LDAP directory for group definitions."""
 
@@ -189,7 +195,7 @@ def get_ldap_search_resultset(base_dn, group_query, ldapobject, scope=ldap.SCOPE
     elif (result_type == ldap.RES_SEARCH_RESULT):
       break
 
-  return result_set   
+  return result_set
 
 # get_ldap_search_resultset()
 
@@ -229,7 +235,7 @@ def get_members_from_group(group, ldapobject):
       else:
         # Check to see if this member is really a group
         mg = get_ldap_search_resultset(member, group_query, ldapobject)
- 
+
         if (len(mg) == 1):
           # The member is a group
           if followgroups:
@@ -287,11 +293,11 @@ and will create a group membership model for each group."""
 
 def get_dict_key_from_value(dict, value):
   """Returns the key of the dictionary entry with the matching value."""
-  
+
   for k, v in dict.iteritems():
     if (v == value):
       return k
-  
+
   return None
 
 # get_dict_key_from_value()
@@ -303,7 +309,7 @@ def create_group_map(groups):
   if groups:
     for group in groups:
       cn = simplify_name(group[1]['cn'][0])
-    
+
       if (not groupmap.has_key(cn)):
         groupmap[cn] = group[0]
       else:
@@ -311,11 +317,11 @@ def create_group_map(groups):
           dups[cn] = 1
         else:
           index = dups[cn]
-          
+
           dups[cn] = (index + 1)
-      
+
         groupmap[cn + str(dups[cn])] = group[0]
-  
+
   return groupmap
 
 # create_group_map()
@@ -339,21 +345,21 @@ def print_group_model(groups, memberships):
   header = header_start + header_middle + header_end
   footer = "### End generated content: " + application_name + " ###\n"
   text_after_content = ""
-  
+
   file = None
   filemode = None
   tmp_fd, tmp_authz_path = tempfile.mkstemp()
-  
+
   if ((authz_path != None) and (authz_path != "None")):
     if (os.path.exists(authz_path)):
       filemode = os.stat(authz_path)
       file = open(authz_path, 'r')
       tmpfile = open(tmp_authz_path, 'w')
-    
+
       # Remove previous generated content
       inside_content = False
       before_content = True
-      
+
       for line in file.readlines(): # read from the existing file
         if (inside_content): # currently between header and footer
           if (line.find(footer) > -1): # footer found
@@ -368,14 +374,14 @@ def print_group_model(groups, memberships):
               tmpfile.write(line) # found before the header: write directly
             else:
               text_after_content += line # found after the header, write to a temporary variable
-      
+
       file.close()
       tmpfile.close()
-  
+
   if (os.path.exists(tmp_authz_path)):
     cp = ConfigParser.ConfigParser()
     cp.read(tmp_authz_path)
-    
+
     if (not cp.has_section("groups")):
       tmpfile = open(tmp_authz_path, 'a')
       tmpfile.write("[groups]\n")
@@ -385,32 +391,32 @@ def print_group_model(groups, memberships):
     tmpfile = open(tmp_authz_path, 'a')
     tmpfile.write("[groups]\n")
     tmpfile.close()
-  
+
   needs_new_line = False
-  
+
   tmpfile = open(tmp_authz_path, 'r')
   if (tmpfile.readlines()[-1].strip() != ''): # if the last line is not empty
     needs_new_line = True # ask to insert a new empty line at the end
   tmpfile.close()
-  
+
   tmpfile = open(tmp_authz_path, 'a')
-  
+
   if (needs_new_line):
     tmpfile.write("\n")
-  
+
   tmpfile.write(header + "\n")
-  
+
   groupmap = create_group_map(groups)
 
   if groups:
     for i in range(len(groups)):
       if (i != 0):
         tmpfile.write("\n")
-  
+
       short_name = simplify_name(get_dict_key_from_value(groupmap, groups[i][0]))
-    
+
       tmpfile.write(short_name + " = ")
-    
+
       users = []
       for j in range(len(memberships[i])):
         user = None
@@ -422,7 +428,7 @@ def print_group_model(groups, memberships):
             if not silent:
               sys.stderr.write("[WARNING]: subgroup not in search scope: %s. This means " %
                                 memberships[i][j].replace("GROUP:","") +
-                               "you won't have all members in the SVN group: %s.\n" % 
+                               "you won't have all members in the SVN group: %s.\n" %
                                 short_name)
         else:
           user = memberships[i][j]
@@ -431,22 +437,22 @@ def print_group_model(groups, memberships):
           users.append(user)
 
       tmpfile.write(", ".join(users))
-  
+
   generate_legend(tmpfile, groups)
-  
+
   tmpfile.write("\n" + footer)
-  
+
   tmpfile.write(text_after_content) # write back original content to file
-  
+
   tmpfile.close()
 
   if authz_path:
     if (os.path.exists(authz_path + ".bak")):
       os.remove(authz_path + ".bak")
-  
+
     if (os.path.exists(authz_path)):
       shutil.move(authz_path, authz_path + ".bak")
-  
+
     shutil.move(tmp_authz_path, authz_path)
     os.chmod(authz_path, filemode.st_mode)
   else:
@@ -470,14 +476,14 @@ def generate_legend(output, groups):
     output.write("###########   " + application_name +" (Legend)  ##########\n")
     output.write("###########################################################" +
                  "#####################\n")
-  
+
     groupmap = create_group_map(groups)
-  
+
     for group in groups:
       short_name = simplify_name(get_dict_key_from_value(groupmap, group[0]))
-    
+
       output.write("### " + short_name + " = " + str(group[0]) + "\n")
-  
+
     output.write("###########################################################" +
                  "#####################\n")
 
@@ -489,6 +495,7 @@ def load_cli_properties(parser):
   global bind_dn
   global bind_password
   global url
+  global starttls
   global base_dn
   global group_query
   global group_dns
@@ -500,7 +507,7 @@ def load_cli_properties(parser):
   global keep_names
   global silent
   global verbose
-  
+
   global is_outfile_specified
 
   (options, args) = parser.parse_args(args=None, values=None)
@@ -508,6 +515,7 @@ def load_cli_properties(parser):
   bind_dn = options.bind_dn
   bind_password = options.bind_password
   url = options.url
+  starttls = options.starttls
   base_dn = options.base_dn
   group_query = options.group_query
   group_dns = options.group_dns
@@ -519,7 +527,7 @@ def load_cli_properties(parser):
   keep_names = options.keep_names
   silent = options.silent
   verbose = options.verbose
-  
+
   is_outfile_specified = (authz_path != None) and (authz_path != "None")
 
 # load_cli_properties()
@@ -541,6 +549,9 @@ def create_cli_parser():
                     help="The fully-qualified URL (scheme://hostname:port) to " \
                          "the directory server. " \
                          "[Example: ldap://localhost:389]")
+  parser.add_option("-t", "--starttls", action="store_true",
+                    dest="starttls", default=False,
+                    help="Connect to the LDAP server with starttls.")
   parser.add_option("-b", "--base-dn", dest="base_dn",
                     help="The Distinguished Name (DN) at which the recursive " \
                          "group search will start. " \
@@ -617,7 +628,7 @@ properties are 'None'."""
   except:
     # one of the variables may not exist (i.e. not defined at the start of the script)
     return False
-  
+
   # bind_password is not checked since if not passed, the user will be prompted
   # authz_path is not checked since it can be 'None' signifying stdout output
 
@@ -650,7 +661,7 @@ def get_unset_properties():
 
 def main():
   """This function is the entry point for this script."""
-  
+
   parser = None
 
   # If all necessary options are not properly set in the current script file
@@ -663,7 +674,7 @@ def main():
   # if some properties are not set at this point, there is an error
   if not are_properties_set():
     sys.stderr.write("There is not enough information to proceed.\n")
-    
+
     for prop in get_unset_properties():
       sys.stderr.write("'%s' was not passed\n" % prop)
 
@@ -688,9 +699,9 @@ def main():
     sys.stderr.write("Could not connect to %s. Error: %s \n" % (url, error_message))
     sys.exit(1)
 
-  try:    
+  try:
     if group_dns:
-      groups = get_groups(ldapobject)    
+      groups = get_groups(ldapobject)
     else:
       groups = search_for_groups(ldapobject)
   except ldap.LDAPError, error_message:
