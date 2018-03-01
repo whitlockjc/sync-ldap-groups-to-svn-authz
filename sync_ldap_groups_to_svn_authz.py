@@ -114,7 +114,8 @@ def bind():
   """This function will bind to the LDAP instance and return an ldapobject."""
 
   ldapobject = ldap.initialize(url)
-
+  ldapobject.protocol_version = ldap.VERSION3  #paging results only apply to LDAP v3
+  ldapobject.set_option(ldap.OPT_REFERRALS, 0) #pagiing result only works without referrals enabled
   ldapobject.bind_s(bind_dn, bind_password)
 
   if verbose:
@@ -132,6 +133,7 @@ def search_for_groups(ldapobject):
 
   groups = []
   result_set = get_ldap_search_resultset(base_dn, group_query, ldapobject)
+  
 
   if (len(result_set) == 0):
     if not silent:
@@ -179,16 +181,35 @@ def get_groups(ldapobject):
 
 def get_ldap_search_resultset(base_dn, group_query, ldapobject, scope=ldap.SCOPE_SUBTREE):
   """This function will return a query result set."""
+  cookie = ''
+  page_size = 1000
+  criticality = False
   result_set = []
-  result_id = ldapobject.search(base_dn, scope, group_query)
 
-  while 1:
-    result_type, result_data = ldapobject.result(result_id, 0)
-    if (result_type == ldap.RES_SEARCH_ENTRY):
+  first_pass = True
+  pg_ctrl = ldap.controls.SimplePagedResultsControl(criticality, page_size, cookie)
+
+  #run though <page_size> results at a time, to avoid exceeding ldap size limit
+  while first_pass or pg_ctrl.cookie:
+    first_pass = False
+    try:
+      msgid = ldapobject.search_ext(base_dn, scope, group_query,  serverctrls=[pg_ctrl])
+    except:
+      sys.stderr.write("ERROR: \n" + str(sys.exc_info()[0]))
+      sys.exit(1)
+
+    while True:
+      result_data = None
+      result_type, result_data, msgid, serverctrls = ldapobject.result3(msgid, all=0)
+
+      if serverctrls is not None and len(serverctrls) > 0:
+        pg_ctrl.cookie = serverctrls[0].cookie  
+     
+      if (result_type == ldap.RES_SEARCH_ENTRY):
         result_set.append(result_data)
-    elif (result_type == ldap.RES_SEARCH_RESULT):
-      break
-
+      elif (result_type == ldap.RES_SEARCH_RESULT):
+        break
+        
   return result_set   
 
 # get_ldap_search_resultset()
