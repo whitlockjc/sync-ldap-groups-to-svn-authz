@@ -544,7 +544,7 @@ def load_cli_properties(parser):
   group_query = options.group_query
   group_dns = options.group_dns
   group_member_attribute = options.group_member_attribute
-  ldap_protocol_version = options.lda_protocol_version
+  ldap_protocol_version = options.ldap_protocol_version
   user_query = options.user_query
   userid_attribute = options.userid_attribute
   followgroups = options.followgroups
