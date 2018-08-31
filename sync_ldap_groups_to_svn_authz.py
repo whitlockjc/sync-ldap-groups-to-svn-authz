@@ -221,7 +221,10 @@ def get_members_from_group(group, ldapobject):
               sys.stdout.write(".")
             else:
               sys.stderr.write(".")
-          members.append(str.lower(attrs[userid_attribute][0]))
+          userid_value = attrs[userid_attribute][0]
+          if not case_sensitive_userid:
+              userid_value = str.lower(userid_value)
+          members.append(userid_value)
         else:
           if not silent:
             sys.stderr.write("[WARNING]: %s does not have the %s attribute...\n" \
@@ -495,6 +498,7 @@ def load_cli_properties(parser):
   global group_member_attribute
   global user_query
   global userid_attribute
+  global case_sensitive_userid
   global followgroups
   global authz_path
   global keep_names
@@ -514,6 +518,7 @@ def load_cli_properties(parser):
   group_member_attribute = options.group_member_attribute
   user_query = options.user_query
   userid_attribute = options.userid_attribute
+  case_sensitive_userid = options.case_sensitive_userid
   followgroups = options.followgroups
   authz_path = options.authz_path
   keep_names = options.keep_names
@@ -574,6 +579,9 @@ def create_cli_parser():
                          "userid to be used in the authz file. " \
                          "[Example: cn] " \
                          "[Default: %default]")
+  parser.add_option("-c", "--case-sensitive-userid", action="store_true", \
+                    dest="case_sensitive_userid", default=False, \
+                    help="Don't perform lowercase conversion on userid" )
   parser.add_option("-f", "--follow-groups", action="store_true",
                     dest="followgroups", default=False,
                     help="Follow sub-groups, i.e. add members of sub-groups " \
