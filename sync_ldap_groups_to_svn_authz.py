@@ -68,6 +68,11 @@ except ImportError:
 # This is the query/filter used to identify user objects.
 #user_query = "objectClass=user"
 
+# This is a format string to transform the member attribute into a user query
+# If this is specified, user_query is not used and the user search uses the 
+# same base_dn as the group search
+#user_query_template = "{}"
+
 # This is the attribute of the user object that stores the userid to be used in
 # the authz file.
 #userid_attribute = "cn"
@@ -209,7 +214,11 @@ def get_members_from_group(group, ldapobject):
   # We need to check if the member is a group and handle specially
   for member in group_members:
     try:
-      user = get_ldap_search_resultset(member, user_query, ldapobject)
+      if user_query_template:
+        new_user_query = user_query_template.replace("{}", member)
+        user = get_ldap_search_resultset(base_dn, new_user_query, ldapobject)
+      else:
+        user = get_ldap_search_resultset(member, user_query, ldapobject)
 
       if (len(user) == 1):
         # The member is a user
@@ -494,6 +503,7 @@ def load_cli_properties(parser):
   global group_dns
   global group_member_attribute
   global user_query
+  global user_query_template
   global userid_attribute
   global followgroups
   global authz_path
@@ -513,6 +523,7 @@ def load_cli_properties(parser):
   group_dns = options.group_dns
   group_member_attribute = options.group_member_attribute
   user_query = options.user_query
+  user_query_template = options.user_query_template
   userid_attribute = options.userid_attribute
   followgroups = options.followgroups
   authz_path = options.authz_path
@@ -567,6 +578,14 @@ def create_cli_parser():
                     default="objectClass=user",
                     help="The query/filter used to identify user objects. " \
                          "[Example: objectClass=user] " \
+                         "[Default: %default]")
+  parser.add_option("-t", "--user-query-template", dest="user_query_template",
+                    default=None,
+                    help="If specified, this template is used in place of the " \
+                         "user-query to form a query to find a user, given the " \
+                         "group-member-attribute above. A {} in the string will " \
+                         "be replaced with that group-member-attribute value. " \
+                         "[Example: (&(uid={})(objectClass=person))] " \
                          "[Default: %default]")
   parser.add_option("-i", "--userid_attribute", dest="userid_attribute",
                     default="cn",
