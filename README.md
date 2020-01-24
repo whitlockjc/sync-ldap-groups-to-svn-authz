@@ -98,6 +98,13 @@ Now that we have those things out of the way, let's look at the help output of t
                           The query/filter used to identify user objects.
                           [Example: objectClass=user] [Default:
                           objectClass=user]
+    -t USER_QUERY_TEMPLATE, --user-query-template=USER_QUERY_TEMPLATE
+                          If specified, this template is used in place of the
+                          user-query to form a query to find a user, given the
+                          group-member-attribute above. A {} in the string will
+                          be replaced with that group-member-attribute value.
+                          [Example: (&(uid={})(objectClass=person))] [Default:
+                          none]
     -i USERID_ATTRIBUTE, --userid_attribute=USERID_ATTRIBUTE
                           The attribute of the user object that stores the
                           userid to be used in the authz file. [Example: cn]
